@@ -65,6 +65,23 @@ python -m pip wheel --no-deps . -w dist
 
 Tests cover case sensitivity, custom journal names, offsets, repeated application, composition order, empty text, and real YASBD segmentation for both examples from issue #412. GitHub Actions runs the suite on Python 3.10–3.14.
 
+## Package structure
+
+Each hook factory has a dedicated module under `src/yasbd_hooks/`:
+
+- `chemical_notation.py`: scientific tokens and their matching defaults.
+- `academic_citations.py`: journal matching and its default catalogue.
+- `clause_boundaries.py`: clause splitting and punctuation defaults.
+- `ocr_artifacts.py`: missing-space boundary recovery.
+- `compose_hooks.py`: callback composition.
+- `_types.py`: shared `Hook` and `HookContext` types.
+- `_add.py`: shared in-place boundary insertion.
+- `__init__.py`: public exports, preserving existing imports.
+
+Continue using `from yasbd_hooks import chemical_notation` (and the other
+public names) without changes. Callback closures stay with their factories;
+private helpers and types are internal implementation details.
+
 ## Contributing
 
 Bug reports should include input, expected segments, actual segments, Python/YASBD versions and the configured hooks. Include a regression test with fixes. Run the test suite before opening a pull request. Additional scientific examples and journal abbreviations are welcome.

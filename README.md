@@ -31,11 +31,20 @@ Hooks mutate paragraph-relative `ctx["boundaries"]` in place. Text, whitespace a
 
 | Factory | Behavior | Scope and limitations |
 | --- | --- | --- |
-| `chemical_notation()` | Restores a boundary after `Br.`, `Ca.`, `Sc.`, `Sr.`, `Co.`, `CO.` and `LC-MS.` before whitespace plus ASCII uppercase prose | Exact case. This assumes these tokens end sentences in your corpus; `Br. Smith` remains ambiguous. Lowercase `ca.` is untouched. |
+| `chemical_notation()` | Restores a boundary after the scientific tokens listed below, before whitespace plus ASCII uppercase prose | Exact case. This assumes these tokens end sentences in your corpus; `Br. Smith` remains ambiguous. Lowercase `ca.` is untouched. |
 | `academic_citations()` | Removes boundaries within configured journal abbreviations immediately followed by a year from 1800–2099 | Small literal catalogue, case-sensitive, flexible spaces/tabs. It does not parse arbitrary citations or author lists. |
 | `clause_boundaries(punctuation=",;:")` | Adds boundaries after selected punctuation followed by whitespace | Clause segmentation, not grammatical sentence detection. Can split quoted text. |
 | `ocr_artifacts()` | Recovers missing spaces, e.g. `Finished.Next` | Conservative ASCII heuristic. May split domains/identifiers; does not rewrite or clean OCR text. |
 | `compose_hooks(*hooks)` | Applies callbacks in order | Later callbacks can undo earlier boundary decisions. |
+
+Default scientific tokens (exact case):
+
+- Chemical symbols: `Br`, `Ca`, `Sc`, `Sr`, `Co`, `Fe`, `Cu`, `Zn`, `Mg`, `Mn`, `Ni`, `Cd`, `Pb`, `Hg`, `Al`, `Si`, `Cl`, `Na`, `Li`.
+- Analytical notation: `CO`, `LC-MS`, `GC-MS`, `LC-MS/MS`, `GC-MS/MS`, `HPLC`, `UHPLC`, `NMR`, `FTIR`, `UV-Vis`, `XRD`, `XRF`, `ICP-MS`, `ICP-OES`, `HRMS`.
+
+The hook is explicitly opt-in for scientific corpora; it does not infer the domain from surrounding prose. It requires a token boundary, a literal period, whitespace and an ASCII uppercase continuation. Lowercase variants, embedded word fragments, numeric continuations and missing spaces do not trigger a new boundary. Ambiguous chemical symbols can still represent names or titles, so select a custom list for mixed-domain text.
+
+Custom `tokens=` **replaces** the defaults rather than extending them. Existing custom lists, generators and empty lists retain their behavior.
 
 Customize the scientific corpus explicitly:
 

@@ -31,8 +31,25 @@ def _add(ctx: HookContext, offsets: Iterable[int]) -> None:
     ctx['boundaries'][:] = sorted(set(ctx['boundaries']).union(offsets))
 
 
-def chemical_notation(*, tokens: Iterable[str] = ('Br', 'Ca', 'Sc', 'Sr', 'Co', 'CO', 'LC-MS')) -> Hook:
+# Immutable groups keep additions reviewable without changing custom token lists.
+_CHEMICAL_SYMBOLS = (
+    'Br', 'Ca', 'Sc', 'Sr', 'Co', 'Fe', 'Cu', 'Zn', 'Mg', 'Mn', 'Ni',
+    'Cd', 'Pb', 'Hg', 'Al', 'Si', 'Cl', 'Na', 'Li',
+)
+_ANALYTICAL_TOKENS = (
+    'CO', 'LC-MS', 'GC-MS', 'LC-MS/MS', 'GC-MS/MS', 'HPLC', 'UHPLC',
+    'NMR', 'FTIR', 'UV-Vis', 'XRD', 'XRF', 'ICP-MS', 'ICP-OES', 'HRMS',
+)
+_DEFAULT_SCIENTIFIC_TOKENS = _CHEMICAL_SYMBOLS + _ANALYTICAL_TOKENS
+
+
+def chemical_notation(*, tokens: Iterable[str] = _DEFAULT_SCIENTIFIC_TOKENS) -> Hook:
     """Restore ends after exact-case scientific tokens followed by uppercase prose.
+
+    Defaults include chemical symbols and analytical techniques. Explicit
+    tokens replace the defaults entirely; an empty iterable disables matching.
+    Matching remains case-sensitive and requires a full token, a period,
+    whitespace and an ASCII uppercase continuation.
 
     This deliberately resolves ambiguity in favor of a sentence boundary. It
     cannot distinguish an element from a title such as 'Br. Smith'. Enable only

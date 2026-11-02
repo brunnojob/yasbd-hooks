@@ -21,6 +21,57 @@ class HookTests(unittest.TestCase):
             chemical_notation()(ctx)
             self.assertEqual(ctx['boundaries'], [0, len(text)])
 
+    def test_expanded_scientific_defaults(self):
+        tokens = (
+            'Fe', 'Cu', 'Zn', 'Mg', 'Mn', 'Ni', 'Cd', 'Pb', 'Hg', 'Al',
+            'Si', 'Cl', 'Na', 'Li', 'GC-MS', 'LC-MS/MS', 'GC-MS/MS',
+            'HPLC', 'UHPLC', 'NMR', 'FTIR', 'UV-Vis', 'XRD', 'XRF',
+            'ICP-MS', 'ICP-OES', 'HRMS',
+        )
+        hook = chemical_notation()
+        for token in tokens:
+            with self.subTest(token=token):
+                text = f'The sample was analyzed using {token}. Results followed.'
+                ctx = context(text)
+                boundaries = ctx['boundaries']
+                hook(ctx)
+                self.assertEqual(boundaries, [0, text.index('. ') + 1, len(text)])
+                self.assertIs(boundaries, ctx['boundaries'])
+                self.assertEqual(ctx['text'], text)
+                hook(ctx)
+                self.assertEqual(boundaries, [0, text.index('. ') + 1, len(text)])
+
+    def test_scientific_context_guards(self):
+        hook = chemical_notation()
+        for text in (
+            'Measured by nmr. Results followed.',
+            'Measured by uv-vis. Results followed.',
+            'Measured by xHPLC. Results followed.',
+            'Measured by ΔNMR. Results followed.',
+            'Measured by NMRx. Results followed.',
+            'Measured by HPLC.Results followed.',
+            'Measured by HPLC. results followed.',
+            'Measured by HPLC. 2026 results followed.',
+            'Measured by HPLC, Results followed.',
+        ):
+            with self.subTest(text=text):
+                ctx = context(text)
+                hook(ctx)
+                self.assertEqual(ctx['boundaries'], [0, len(text)])
+
+    def test_custom_tokens_replace_expanded_defaults(self):
+        for tokens in (['Only'], ('Only',), iter(['Only'])):
+            ctx = context('Only. Results from NMR. Results from Br. Results.')
+            chemical_notation(tokens=tokens)(ctx)
+            self.assertEqual(ctx['boundaries'], [0, 5, len(ctx['text'])])
+        for tokens in ([], (), iter(())):
+            ctx = context('NMR. Results from Br. Results.')
+            chemical_notation(tokens=tokens)(ctx)
+            self.assertEqual(ctx['boundaries'], [0, len(ctx['text'])])
+        ctx = context('X+. Results. nmr. Results.')
+        chemical_notation(tokens=['X+', 'nmr'])(ctx)
+        self.assertEqual(ctx['boundaries'], [0, 3, 17, len(ctx['text'])])
+
     def test_journal_year(self):
         text = 'Smith, A.; Jones, B. J. Am. Chem. Soc. 2020, 142, 1234-1240.'
         ctx = context(text, [0] + [i+1 for i, c in enumerate(text) if c == '.'])
@@ -63,6 +114,16 @@ class HookTests(unittest.TestCase):
 
 
 class IntegrationTests(unittest.TestCase):
+    def test_expanded_scientific_segmentation(self):
+        from yasbd import BoundaryDetector
+        detector = BoundaryDetector(lang='en', hook=chemical_notation())
+        for token in ('Fe', 'NMR', 'HPLC', 'LC-MS/MS', 'ICP-OES', 'UV-Vis'):
+            with self.subTest(token=token):
+                first = f'The sample was analyzed using {token}.'
+                text = first + ' Results followed.'
+                self.assertEqual(list(detector.segment(text)), [first, 'Results followed.'])
+                self.assertEqual(''.join(detector.segment(text, preserve_whitespace=True)), text)
+
     def test_issue_412(self):
         from yasbd import BoundaryDetector
         text = 'The film was doped with Br. Selectivity was high.'

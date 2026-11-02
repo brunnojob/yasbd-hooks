@@ -68,7 +68,16 @@ def chemical_notation(*, tokens: Iterable[str] = _DEFAULT_SCIENTIFIC_TOKENS) -> 
     return apply
 
 
-def academic_citations(*, journals: Iterable[str] = ('J. Am. Chem. Soc.', 'Angew. Chem. Int. Ed.', 'J. Phys. Chem. A.', 'J. Phys. Chem. B.', 'J. Phys. Chem. C.')) -> Hook:
+_DEFAULT_JOURNALS = (
+    'J. Am. Chem. Soc.',
+    'Angew. Chem. Int. Ed.',
+    'J. Phys. Chem. A.',
+    'J. Phys. Chem. B.',
+    'J. Phys. Chem. C.',
+)
+
+
+def academic_citations(*, journals: Iterable[str] = _DEFAULT_JOURNALS) -> Hook:
     """Protect literal journal abbreviations immediately followed by a year.
 
     The intentionally small, customizable catalogue is not a citation parser.
@@ -96,9 +105,12 @@ def academic_citations(*, journals: Iterable[str] = ('J. Am. Chem. Soc.', 'Angew
     return apply
 
 
-def clause_boundaries(*, punctuation: str = ',;:') -> Hook:
+_DEFAULT_CLAUSE_PUNCTUATION = ',;:'
+
+
+def clause_boundaries(*, punctuation: str = _DEFAULT_CLAUSE_PUNCTUATION) -> Hook:
     """Split after chosen clause punctuation before whitespace; opt-in only."""
-    if not punctuation or any(c not in ',;:' for c in punctuation):
+    if not punctuation or any(c not in _DEFAULT_CLAUSE_PUNCTUATION for c in punctuation):
         raise ValueError('punctuation must contain only commas, semicolons or colons')
     pattern = re.compile('[' + re.escape(punctuation) + r'](?=\s+\S)')
 

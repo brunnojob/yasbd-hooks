@@ -96,6 +96,25 @@ class HookTests(unittest.TestCase):
         with self.assertRaises(TypeError):
             compose_hooks(None)
 
+    def test_clause_boundaries_default_punctuation(self):
+        text = 'Alpha, beta; gamma: delta — epsilon.'
+        ctx = context(text)
+        clause_boundaries()(ctx)
+        self.assertEqual(ctx['boundaries'], [0, 6, 12, 19, len(text)])
+
+    def test_clause_boundaries_extended_punctuation(self):
+        punctuation = '—–…；：'
+        text = 'Alpha — beta – gamma… delta； epsilon： zeta.'
+        ctx = context(text)
+        clause_boundaries(punctuation=punctuation)(ctx)
+        self.assertEqual(ctx['boundaries'], [0, 7, 14, 21, 28, 37, len(text)])
+
+    def test_clause_boundaries_rejects_sentence_final_punctuation(self):
+        for punctuation in ('.', '?', '!', '¿', '¡'):
+            with self.subTest(punctuation=punctuation):
+                with self.assertRaises(ValueError):
+                    clause_boundaries(punctuation=punctuation)
+
     def test_ocr(self):
         ctx = context('Finished.Next step!Another one. 3.14 U.S.A.')
         ocr_artifacts()(ctx)

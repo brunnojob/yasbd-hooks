@@ -33,7 +33,7 @@ Hooks mutate paragraph-relative `ctx["boundaries"]` in place. Text, whitespace a
 | --- | --- | --- |
 | `chemical_notation()` | Restores a boundary after the scientific tokens listed below, before whitespace plus ASCII uppercase prose | Exact case. This assumes these tokens end sentences in your corpus; `Br. Smith` remains ambiguous. Lowercase `ca.` is untouched. |
 | `academic_citations()` | Removes boundaries within configured journal abbreviations immediately followed by a year from 1800–2099 | Small literal catalogue, case-sensitive, flexible spaces/tabs. It does not parse arbitrary citations or author lists. |
-| `clause_boundaries(punctuation=",;:")` | Adds boundaries after selected punctuation followed by whitespace | Clause segmentation, not grammatical sentence detection. Can split quoted text. |
+| `clause_boundaries()` | Adds boundaries after selected punctuation followed by whitespace | Clause segmentation, not grammatical sentence detection. Can split quoted text. |
 | `ocr_artifacts()` | Recovers missing spaces, e.g. `Finished.Next` | Conservative ASCII heuristic. May split domains/identifiers; does not rewrite or clean OCR text. |
 | `compose_hooks(*hooks)` | Applies callbacks in order | Later callbacks can undo earlier boundary decisions. |
 

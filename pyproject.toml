@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "yasbd-hooks"
+version = "0.1.0"
+description = "Reusable opt-in callbacks for YASBD sentence boundary detection"
+requires-python = ">=3.10"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [{name = "brunnojob"}]
+dependencies = ["yasbd-lib>=1.0.4,<2"]
+
+[project.urls]
+Repository = "https://github.com/brunnojob/yasbd-hooks"
+Issues = "https://github.com/brunnojob/yasbd-hooks/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]

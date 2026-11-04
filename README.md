@@ -32,9 +32,10 @@ Hooks mutate paragraph-relative `ctx["boundaries"]` in place. Text, whitespace a
 | Factory | Behavior | Scope and limitations |
 | --- | --- | --- |
 | `chemical_notation()` | Restores a boundary after the scientific tokens listed below, before whitespace plus ASCII uppercase prose | Exact case. This assumes these tokens end sentences in your corpus; `Br. Smith` remains ambiguous. Lowercase `ca.` is untouched. |
-| `academic_citations()` | Removes boundaries within configured journal abbreviations immediately followed by a year from 1800–2099 | Small literal catalogue, case-sensitive, flexible spaces/tabs. It does not parse arbitrary citations or author lists. |
+| `academic_citations()` | Removes boundaries within journal abbreviations immediately followed by a year from 1800–2099 | Literal catalogue plus conservative general matching; `general=False` selects exact matching only. Case-sensitive, flexible spaces/tabs; not a bibliography parser. |
 | `clause_boundaries()` | Adds boundaries after selected punctuation followed by whitespace | Clause segmentation, not grammatical sentence detection. Defaults to `,;:`; broader soft separators must be opted into explicitly. Can split quoted text. |
-| `ocr_artifacts()` | Recovers missing spaces, e.g. `Finished.Next` | Conservative ASCII heuristic. May split domains/identifiers; does not rewrite or clean OCR text. |
+| `ocr_artifacts()` | Recovers missing spaces and flattened numeric citation endings, e.g. `Finished.Next` and `previously.12,13 However` | Conservative ASCII heuristic. May split domains/identifiers; does not rewrite or clean OCR text. |
+| `bracketed_citations()` | Keeps attached numeric citations with the preceding sentence, e.g. `previously.[12,13] However` | Requires sentence punctuation, positive numeric references and a capitalized continuation. No text cleanup. |
 | `compose_hooks(*hooks)` | Applies callbacks in order | Later callbacks can undo earlier boundary decisions. |
 
 Default scientific tokens (exact case):
@@ -50,10 +51,10 @@ Customize the scientific corpus explicitly:
 
 ```python
 chemistry = chemical_notation(tokens=["Br", "Ca", "LC-MS", "Eg"])
-citations = academic_citations(journals=["J. Am. Chem. Soc.", "Custom J."])
+citations = academic_citations(journals=["J. Am. Chem. Soc.", "Custom J."], general=False)
 ```
 
-Empty token/journal collections create no-op callbacks. Add validated journal names and real regression examples rather than broad abbreviation patterns. These initial heuristics do not claim universal scientific-text accuracy.
+Empty token collections create no-op callbacks. For journals, use `journals=[], general=False` for a no-op. These heuristics do not claim universal scientific-text accuracy.
 
 For conservative clause splitting, use the default ASCII punctuation:
 
@@ -74,6 +75,55 @@ The supported extended set includes em dashes, en dashes, ellipses, and the
 full-width semicolon and colon. Sentence-final punctuation (`.`, `?`, `!`,
 `¿`, and `¡`) is intentionally not accepted.
 
+## Citation boundary guards
+
+`academic_citations()` now recognizes common journal-like patterns such as
+`J. Am. Chem. Soc. 2020`, `Proc. Natl. Acad. Sci. 2024`, and
+`Phys. Rev. Lett. 2021`. General matching requires three to six capitalized,
+period-terminated tokens; the first must be `J.` or a multi-letter abbreviation,
+and intermediate tokens must have multiple letters. Only horizontal whitespace
+and a following year from 1800–2099 are accepted. Boundaries outside the matched
+journal span, including author initials, are preserved.
+
+```python
+citations = academic_citations()  # default catalogue plus general matching
+exact = academic_citations(journals=["Custom J."], general=False)
+catalogue_only = academic_citations(general=False)
+```
+
+A supplied `journals=` collection replaces the literal default catalogue.
+General matching remains enabled unless `general=False`; set it to false for
+strict custom-name matching. Empty collections and generators are supported.
+Journal-shaped prose followed by a year can remain ambiguous; use exact mode
+for mixed-domain text. This hook does not parse arbitrary bibliography metadata.
+
+`ocr_artifacts()` also restores boundaries after flattened numeric citations.
+`bracketed_citations()` is a separate, single-purpose hook for attached numeric
+citations in square brackets. Both retain citations with the preceding sentence,
+remove premature boundaries inside the marker, and preserve the original text.
+
+```python
+from yasbd import BoundaryDetector
+from yasbd_hooks import bracketed_citations, compose_hooks, ocr_artifacts
+
+hook = compose_hooks(ocr_artifacts(), bracketed_citations())
+detector = BoundaryDetector(lang="en", hook=hook)
+assert list(detector.segment("Reported previously.12,13 However, it is debated.")) == [
+    "Reported previously.12,13", "However, it is debated."
+]
+assert list(detector.segment("Reported previously.[40–46] However, it is debated.")) == [
+    "Reported previously.[40–46]", "However, it is debated."
+]
+```
+
+Citation markers accept positive integers of one to four digits, comma lists,
+and hyphen/en-dash ranges. A lowercase-ending word of at least two letters must
+precede `.`, `!`, or `?`; horizontal whitespace and an ASCII capitalized word
+must follow the marker. Decimals, initials, acronyms, malformed lists, lowercase
+continuations and cross-line continuations are left alone. This intentionally
+excludes spaced brackets, superscript Unicode digits, and full citation parsing.
+All hooks remain opt-in and work with `compose_hooks(...)`.
+
 ## Development
 
 ```sh
@@ -91,7 +141,8 @@ Each hook factory has a dedicated module under `src/yasbd_hooks/`:
 - `chemical_notation.py`: scientific tokens and their matching defaults.
 - `academic_citations.py`: journal matching and its default catalogue.
 - `clause_boundaries.py`: clause splitting and punctuation defaults.
-- `ocr_artifacts.py`: missing-space boundary recovery.
+- `ocr_artifacts.py`: missing-space and flattened citation boundary recovery.
+- `bracketed_citations.py`: attached bracketed numeric citation boundaries.
 - `compose_hooks.py`: callback composition.
 - `_types.py`: shared `Hook` and `HookContext` types.
 - `_add.py`: shared in-place boundary insertion.
@@ -104,6 +155,12 @@ private helpers and types are internal implementation details.
 ## Contributing
 
 Bug reports should include input, expected segments, actual segments, Python/YASBD versions and the configured hooks. Include a regression test with fixes. Run the test suite before opening a pull request. Additional scientific examples and journal abbreviations are welcome.
+
+[Issue #6](https://github.com/brunnojob/yasbd-hooks/issues/6) is the ongoing
+hook backlog and remains open. Propose small, single-purpose, opt-in hooks there
+with input, expected segments, scope limits, and positive/negative regression
+cases. The citation hooks above are initial additions; future ideas include
+structured-text boundary restorers and domain-specific scientific notation guards.
 
 ## Credits
 

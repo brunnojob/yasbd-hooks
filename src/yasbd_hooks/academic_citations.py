@@ -16,12 +16,16 @@ _DEFAULT_JOURNALS = (
 )
 
 
-def academic_citations(*, journals: Iterable[str] = _DEFAULT_JOURNALS) -> Hook:
-    """Protect literal journal abbreviations immediately followed by a year.
+def academic_citations(*, journals: Iterable[str] | None = None, general: bool = True) -> Hook:
+    """Protect journal abbreviations immediately followed by an 1800–2099 year.
 
-    The intentionally small, customizable catalogue is not a citation parser.
+    General matching requires three to six capitalized abbreviations.
+    Set general=False for the literal catalogue or exact custom names only.
+    This boundary guard is not a citation parser.
     Matching is case-sensitive and horizontal whitespace is flexible.
     """
+    if journals is None:
+        journals = _DEFAULT_JOURNALS
     if isinstance(journals, str):
         raise TypeError('journals must be an iterable of strings')
     patterns = []
@@ -30,6 +34,13 @@ def academic_citations(*, journals: Iterable[str] = _DEFAULT_JOURNALS) -> Hook:
             raise ValueError('journals must contain nonempty strings')
         literal = r'[ \t]+'.join(re.escape(part) for part in journal.split())
         patterns.append(re.compile(r'(?<!\w)' + literal + r'(?=[ \t]+(?:18|19|20)\d{2}\b)'))
+
+    if general:
+        patterns.append(re.compile(
+            r'(?<!\w)(?:J\.|[A-Z][A-Za-z]+\.)[ \t]+'
+            r'(?:[A-Z][A-Za-z]+\.[ \t]+){1,4}'
+            r'[A-Z][A-Za-z]*\.(?=[ \t]+(?:18|19|20)\d{2}\b)'
+        ))
 
     def apply(ctx: HookContext) -> None:
         text = ctx['text']

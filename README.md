@@ -33,7 +33,7 @@ Hooks mutate paragraph-relative `ctx["boundaries"]` in place. Text, whitespace a
 | --- | --- | --- |
 | `chemical_notation()` | Restores a boundary after the scientific tokens listed below, before whitespace plus ASCII uppercase prose | Exact case. This assumes these tokens end sentences in your corpus; `Br. Smith` remains ambiguous. Lowercase `ca.` is untouched. |
 | `academic_citations()` | Removes boundaries within configured journal abbreviations immediately followed by a year from 1800–2099 | Small literal catalogue, case-sensitive, flexible spaces/tabs. It does not parse arbitrary citations or author lists. |
-| `clause_boundaries()` | Adds boundaries after selected punctuation followed by whitespace | Clause segmentation, not grammatical sentence detection. Can split quoted text. |
+| `clause_boundaries()` | Adds boundaries after selected punctuation followed by whitespace | Clause segmentation, not grammatical sentence detection. Defaults to `,;:`; broader soft separators must be opted into explicitly. Can split quoted text. |
 | `ocr_artifacts()` | Recovers missing spaces, e.g. `Finished.Next` | Conservative ASCII heuristic. May split domains/identifiers; does not rewrite or clean OCR text. |
 | `compose_hooks(*hooks)` | Applies callbacks in order | Later callbacks can undo earlier boundary decisions. |
 
@@ -54,6 +54,25 @@ citations = academic_citations(journals=["J. Am. Chem. Soc.", "Custom J."])
 ```
 
 Empty token/journal collections create no-op callbacks. Add validated journal names and real regression examples rather than broad abbreviation patterns. These initial heuristics do not claim universal scientific-text accuracy.
+
+For conservative clause splitting, use the default ASCII punctuation:
+
+```python
+clauses = clause_boundaries()
+```
+
+For scientific, OCR, or multilingual text, opt into the additional soft
+separators explicitly:
+
+```python
+from yasbd_hooks import clause_boundaries
+
+broader_clauses = clause_boundaries(punctuation="—–…；：")
+```
+
+The supported extended set includes em dashes, en dashes, ellipses, and the
+full-width semicolon and colon. Sentence-final punctuation (`.`, `?`, `!`,
+`¿`, and `¡`) is intentionally not accepted.
 
 ## Development
 
